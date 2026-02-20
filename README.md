@@ -4,6 +4,19 @@ This project demonstrates end-to-end deployment of a production-style containeri
 
 The goal of this project is to simulate a real-world cloud platform setup including networking, security, automation, and scalable deployment architecture.
 
+### Architecture:
+
+Internet
+   ↓
+ALB (via Ingress Controller)
+   ↓
+EKS Cluster
+   ↓
+YouTube Clone Pods
+   ↓
+Images from ECR
+
+
 ### 🏗️ Architecture Overview
 
 The solution includes:
