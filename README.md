@@ -1,266 +1,280 @@
-# 🚀 Production-Grade Multi-AZ AWS EKS Platform Deployment
+# 🚀 Production-Grade Full Stack YouTube Clone on AWS EKS
 
-This project demonstrates an enterprise-style production deployment of a containerized YouTube Clone application on **Amazon EKS**, provisioned entirely using **Terraform (Infrastructure as Code)** and deployed through a fully automated **CI/CD pipeline using GitHub Actions**.
+## 📌 Project Overview
 
-The architecture follows high availability, security, scalability, and DevOps best practices.
+This project demonstrates a **production-style full stack application deployment** on AWS using modern DevOps practices and cloud-native architecture.
 
----
+The application consists of:
 
-# 🏗️ Architecture Overview
+* 🎨 React Frontend (SPA)
+* 🟢 Node.js Backend API
+* 🗄 PostgreSQL (Amazon RDS)
+* ☸ Amazon EKS (Managed Kubernetes)
+* 🐳 Dockerized microservices
+* 🔁 GitHub Actions CI/CD (OIDC-based)
+* 📦 Amazon ECR
+* 🚦 Blue/Green Deployment Strategy
+* 📊 Observability & Autoscaling
+* 🔐 IAM Roles for Service Accounts (IRSA)
 
-## High-Level Design
+All infrastructure is provisioned using **Terraform (modularized IaC)**.
 
-```
-                Internet
-                    │
-              AWS ALB (Ingress)
-                    │
-        ┌───────────┴───────────┐
-        │                       │
-   Public Subnet AZ-1      Public Subnet AZ-2
-        │                       │
-        └───────────┬───────────┘
-                    │
-            EKS Cluster (Private Subnets)
-        ┌───────────┴───────────┐
-        │                       │
- Managed Node Group       Managed Node Group
-        │                       │
-   Kubernetes Pods (YouTube Clone App)
-                    │
-              Amazon RDS (Optional)
-                    │
-              Private Subnets
-```
+This project simulates how a real company builds and releases production software.
 
 ---
 
-# 🧱 Infrastructure Components
+# 🏗️ Architecture
 
-## Networking (Terraform Managed)
+## High-Level Architecture
 
-* Custom VPC
-* 2 Public Subnets (Multi-AZ)
-* 2 Private Subnets (Multi-AZ)
+```
+Users
+  ↓
+AWS ALB (Public Subnet)
+  ↓
+EKS Cluster (Private Subnets)
+  ├── React Frontend Pod
+  ├── Node.js Backend Pod
+  ↓
+Amazon RDS PostgreSQL (Private)
+```
+
+---
+
+## 🔹 Infrastructure Layer (AWS)
+
+* Custom VPC (Multi-AZ)
+* 2 Public Subnets (ALB)
+* 2 Private Subnets (EKS + RDS)
 * Internet Gateway
 * NAT Gateway
-* Route Tables (Public & Private)
-* Security Groups (Least Privilege)
-
-## Kubernetes Platform
-
-* Amazon EKS Cluster
-* Managed Node Groups (Private Subnets)
-* Cluster Autoscaler
-* Horizontal Pod Autoscaler (HPA)
-* IAM Roles for Service Accounts (IRSA)
-* Kubernetes RBAC
-
-## Load Balancing
-
-* AWS Application Load Balancer (ALB)
-* ALB Ingress Controller
-
-## Container & Registry
-
-* Dockerized YouTube Clone Application
-* Amazon ECR (with lifecycle policies)
-
-## CI/CD
-
-* GitHub Actions
-* Docker Build & Tag
-* Push Image to ECR
-* Deploy to EKS using kubectl
-* Rolling Updates enabled
-
-## Monitoring & Observability
-
-* AWS CloudWatch
-* Container Insights
-* ALB metrics
-* Log analysis for troubleshooting
+* Security Group isolation
+* Remote Terraform state (S3 + DynamoDB locking)
 
 ---
 
-# 🔐 Security Best Practices Implemented
+## 🔹 Kubernetes Layer
 
-* Private worker nodes (no public IPs)
-* IAM least-privilege policies
-* IRSA for secure pod-to-AWS access
-* Security group isolation between tiers
-* RDS in private subnet
-* Terraform remote backend with state locking
+* Amazon EKS (Managed control plane)
+* Managed Node Group (private nodes)
+* ALB Ingress Controller
+* Horizontal Pod Autoscaler (HPA)
+* Blue/Green deployment setup
+* ArgoCD for GitOps
+* Metrics Server
+
+---
+
+## 🔹 CI/CD Pipeline
+
+GitHub Actions pipeline includes:
+
+1. Code checkout
+2. Install dependencies
+3. Build (React + Node)
+4. Unit tests
+5. SonarCloud quality scan
+6. Trivy vulnerability scan
+7. Docker multi-stage build
+8. Push image to Amazon ECR (OIDC authentication)
+9. Update GitOps manifests
+10. ArgoCD auto-sync deployment
+
+No static AWS credentials are stored in GitHub.
+
+---
+
+# 🧰 Technology Stack
+
+| Layer               | Tools Used               |
+| ------------------- | ------------------------ |
+| IaC                 | Terraform                |
+| Cloud               | AWS (EKS, ECR, RDS, ALB) |
+| Frontend            | React                    |
+| Backend             | Node.js + Express        |
+| Database            | PostgreSQL (RDS)         |
+| CI/CD               | GitHub Actions           |
+| GitOps              | ArgoCD                   |
+| Containerization    | Docker                   |
+| Security Scan       | Trivy                    |
+| Code Quality        | SonarCloud               |
+| Observability       | HPA + Metrics Server     |
+| Deployment Strategy | Blue/Green               |
+
+---
+
+# 🔁 CI/CD Flow
+
+```
+Developer Push
+    ↓
+GitHub Actions
+    ├── Build & Test
+    ├── SonarCloud Scan
+    ├── Trivy Scan
+    ├── Docker Build
+    ├── Push to ECR (OIDC)
+    ↓
+Update GitOps Repo
+    ↓
+ArgoCD Sync
+    ↓
+EKS Deployment
+```
+
+---
+
+# 🔐 Security Practices Implemented
+
+* IAM Roles for Service Accounts (IRSA)
+* OIDC authentication (GitHub → AWS)
+* No static AWS keys
+* Private EKS worker nodes
+* Private RDS (no public access)
+* Security group isolation
+* Docker non-root user
+* Image vulnerability scanning
+* Code quality gates
+
+---
+
+# 🚦 Deployment Strategy
+
+### Blue/Green Deployment
+
+Two deployments:
+
+* `app-blue`
+* `app-green`
+
+Traffic is switched via Kubernetes service or ALB routing.
+
+This enables:
+
+* Zero downtime deployments
+* Safe rollback capability
+
+---
+
+# 📊 Autoscaling
+
+Horizontal Pod Autoscaler configured:
+
+* Min replicas: 1
+* Max replicas: 3
+* CPU threshold: 50%
+
+Demonstrates dynamic scaling capability.
+
+---
+
+# 💾 Backup & Disaster Recovery
+
+* RDS automated backups (7-day retention)
+* Manual snapshot capability
+* Terraform destroy strategy for cost control
+* Infrastructure redeployable via IaC
+
+---
+
+# 🌿 Branching Strategy
+
+```
+main        → Production
+develop     → Integration
+feature/*   → Feature development
+release/*   → Pre-release
+hotfix/*    → Emergency fixes
+```
+
+CI behavior:
+
+* feature → Build + Test
+* develop → Build + Scan
+* main → Full pipeline + Deployment
 
 ---
 
 # 📁 Repository Structure
 
 ```
-.
+enterprise-youtube-clone/
+│
 ├── terraform/
 │   ├── modules/
-│   │   ├── vpc/
+│   │   ├── networking/
 │   │   ├── eks/
 │   │   ├── rds/
-│   │   └── alb/
-│   ├── main.tf
-│   ├── variables.tf
-│   └── backend.tf
+│   │   ├── ecr/
+│   │   └── iam/
+│   └── envs/dev/
 │
-├── app/
-│   ├── Dockerfile
-│   └── source-code/
-│
-├── k8s/
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── ingress.yaml
-│   └── hpa.yaml
-│
+├── frontend/
+├── backend/
+├── k8s-manifests/
 ├── .github/workflows/
-│   └── ci-cd.yaml
-│
-└── README.md
+└── docs/
 ```
-
----
-
-# ⚙️ Implementation Steps
-
-## 1️⃣ Prerequisites
-
-* AWS CLI configured
-* kubectl installed
-* Terraform installed
-* Docker installed
-* GitHub repository secrets configured:
-
-  * AWS_ACCESS_KEY_ID
-  * AWS_SECRET_ACCESS_KEY
-  * AWS_REGION
-  * ECR_REPOSITORY
-
----
-
-## 2️⃣ Provision Infrastructure (Terraform)
-
-```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply
-```
-
-This will provision:
-
-* VPC
-* Subnets
-* NAT Gateway
-* EKS Cluster
-* Managed Node Groups
-* IAM Roles
-* ALB resources
-
----
-
-## 3️⃣ Configure kubectl
-
-```bash
-aws eks update-kubeconfig --region <region> --name <cluster-name>
-```
-
-Verify:
-
-```bash
-kubectl get nodes
-```
-
----
-
-## 4️⃣ Deploy Application (Manual)
-
-```bash
-kubectl apply -f k8s/
-```
-
-OR
-
----
-
-## 5️⃣ Automated CI/CD Deployment
-
-On every push to main branch:
-
-1. GitHub Actions triggers
-2. Docker image is built
-3. Image pushed to Amazon ECR
-4. Deployment updated in EKS
-5. Rolling update performed automatically
-
----
-
-# 📈 Scaling Strategy
-
-## Cluster Level
-
-* Managed Node Groups
-* Cluster Autoscaler enabled
-
-## Application Level
-
-* Horizontal Pod Autoscaler (HPA)
-* CPU-based scaling
 
 ---
 
 # 💰 Cost Optimization Strategy
 
-* Minimal node count during testing
-* Infrastructure destroyed after demo using:
+This project is designed as a learning lab:
 
-```bash
-terraform destroy
-```
+* t3.micro nodes
+* db.t3.micro RDS
+* Infrastructure destroyed after demo
+* Single NAT Gateway
+* Minimal ECR retention policy
 
-* ECR lifecycle policy enabled
-* Resources tagged for tracking
+Primary paid components:
 
----
+* EKS control plane (~$0.10/hr)
+* ALB hourly cost
 
-# 🧪 Failure & High Availability Considerations
-
-* Multi-AZ architecture
-* Private worker nodes
-* ALB health checks
-* Rolling deployments
-* Pod readiness & liveness probes
-
-If one Availability Zone fails:
-
-* Traffic automatically routes to healthy AZ
-* Pods rescheduled by Kubernetes
-* ALB maintains availability
+Infrastructure is intentionally destroyed after successful deployment.
 
 ---
 
-# 🏆 Key Learning Outcomes
+# 🎯 What This Project Demonstrates
 
-* Designing secure multi-AZ AWS architectures
-* Managing EKS clusters in production-like setup
-* Implementing CI/CD pipelines for Kubernetes workloads
-* Applying Infrastructure as Code best practices
-* Enforcing IAM and RBAC security models
-* Monitoring and troubleshooting cloud-native workloads
+* Production-grade Kubernetes architecture
+* Secure CI/CD using OIDC federation
+* Full-stack containerized application
+* GitOps workflow
+* Blue/Green deployment
+* Infrastructure as Code (modular Terraform)
+* Cost-aware cloud operations
+
+This simulates real enterprise DevOps engineering practices.
 
 ---
 
-# 🔮 Future Improvements
+# 🚀 Future Enhancements
 
-* Blue/Green Deployment
-* ArgoCD for GitOps
-* Prometheus + Grafana integration
-* WAF integration
-* Backup automation for RDS
+* AWS WAF integration
+* Prometheus + Grafana stack
+* Redis caching layer
+* S3 for media storage
+* Canary deployments
+* Multi-environment promotion strategy
+
+---
+
+# 👨‍💻 Author
+
+Bablu Alam
+
+Cloud Operations Engineer
+
+Bangalore, India
+
+---
+
+# 🏁 Final Note
+
+This project is not a tutorial deployment.
+It is a controlled simulation of enterprise DevOps architecture built with cost awareness and security-first principles.
 
 ---
